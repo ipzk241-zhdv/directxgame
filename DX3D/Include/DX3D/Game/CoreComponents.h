@@ -20,15 +20,5 @@ namespace dx3d {
         std::shared_ptr<ModelGPU> model;
     };
 
-    struct HierarchyComponent {
-        Entity parent = Entity::Null;
-        std::vector<Entity> children;
-
-        bool inheritPosition = true;
-        bool inheritRotation = true;
-        bool inheritScale = true;
-
-        bool hasParent() const { return parent != Entity::Null; }
-    };
 
 }

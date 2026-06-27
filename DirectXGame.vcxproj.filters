@@ -431,5 +431,8 @@
     <ClInclude Include="DX3D\Include\DX3D\Game\CoreComponents.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="DX3D\Include\DX3D\Game\ComponentStorage.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

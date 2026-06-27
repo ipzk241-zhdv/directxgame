@@ -209,6 +209,7 @@
     <ClInclude Include="DX3D\Include\DX3D\Game\TransformSystem.h" />
     <ClInclude Include="DX3D\Include\DX3D\Game\VisibilitySystem.h" />
     <ClInclude Include="DX3D\Source\ThirdParty\json\json.hpp" />
+    <ClInclude Include="DX3D\Include\DX3D\Game\ComponentStorage.h" />
     <ClInclude Include="Game\Editor\KeplerEditor.h" />
     <ClInclude Include="Game\Editor\AssetBrowserPanel.h" />
     <ClInclude Include="Game\Editor\HierarchyPanel.h" />

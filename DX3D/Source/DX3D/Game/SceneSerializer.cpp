@@ -7,8 +7,8 @@
 
 namespace dx3d {
 
-	SceneSerializer::SceneSerializer(Registry& registry, TransformSystem& tSys, OrbitSystem& oSys, SceneManager& sMan, AssetManager& aMan)
-		: m_registry(registry), m_transformSystem(tSys), m_orbitSystem(oSys), m_sceneManager(sMan), m_assetManager(aMan) {
+	SceneSerializer::SceneSerializer(Registry& registry, TransformSystem& tSys, RenderComponentSystem& rSys, ComponentStorage<NameComponent>& nSys, ComponentStorage<TagComponent>& tagSys, ComponentStorage<ModelComponent>& mSys, OrbitSystem& oSys, SceneManager& sMan, AssetManager& aMan)
+		: m_registry(registry), m_orbitSystem(oSys), m_transformSystem(tSys), m_renderSystem(rSys), m_nameSystem(nSys), m_tagSystem(tagSys), m_modelSystem(mSys), m_sceneManager(sMan), m_assetManager(aMan) {
 	}
 
 	int SceneSerializer::CalculateSimDepth(Entity entity) const {
@@ -119,9 +119,9 @@ namespace dx3d {
 		for (const auto& obj : m_sceneManager.getAllObjects()) {
 			nlohmann::json jObj;
 			jObj["fileId"] = obj->entity.id;
-			jObj["name"] = obj->name;
-			jObj["tag"] = obj->tag;
-			jObj["modelName"] = obj->modelName;
+			jObj["name"] = m_nameSystem.has(obj->entity) ? m_nameSystem.get(obj->entity).name : obj->name;
+			jObj["tag"] = m_tagSystem.has(obj->entity) ? m_tagSystem.get(obj->entity).tag : obj->tag;
+			jObj["modelName"] = m_modelSystem.has(obj->entity) ? m_modelSystem.get(obj->entity).modelName : obj->modelName;
 
 			Entity parent = Entity::Null;
 			bool inheritPosition = true;
@@ -163,6 +163,10 @@ namespace dx3d {
 
 		m_registry.clear();
 		m_transformSystem.clear();
+		m_renderSystem.clear();
+		m_nameSystem.clear();
+		m_tagSystem.clear();
+		m_modelSystem.clear();
 		m_orbitSystem.clear();
 		m_sceneManager.clear();
 
@@ -295,9 +299,16 @@ namespace dx3d {
 
 				Entity liveEntity = fileToRuntimeMap[fileId];
 
-				auto obj = m_sceneManager.bindEditorObject(liveEntity, jObj.value("name", "Unnamed"));
-				obj->tag = jObj.value("tag", "");
-				obj->modelName = jObj.value("modelName", "");
+				const std::string name = jObj.value("name", "Unnamed");
+				const std::string tag = jObj.value("tag", "");
+				const std::string modelName = jObj.value("modelName", "");
+
+				m_nameSystem.addOrReplace(liveEntity, NameComponent{ name });
+				m_tagSystem.addOrReplace(liveEntity, TagComponent{ tag });
+
+				auto obj = m_sceneManager.bindEditorObject(liveEntity, name);
+				obj->tag = tag;
+				obj->modelName = modelName;
 
 				if (jObj.contains("inheritFlags") && m_transformSystem.hasTransform(liveEntity)) {
 					auto flags = jObj["inheritFlags"];
@@ -313,6 +324,7 @@ namespace dx3d {
 
 				if (!obj->modelName.empty()) {
 					obj->model = m_assetManager.getModel(obj->modelName);
+					m_modelSystem.addOrReplace(liveEntity, ModelComponent{ obj->modelName, obj->model });
 				}
 
 				if (m_transformSystem.hasTransform(liveEntity)) {
@@ -321,6 +333,15 @@ namespace dx3d {
 
 				if (m_sceneManager.onObjectCreated) {
 					m_sceneManager.onObjectCreated(obj);
+				}
+
+				if (obj->model && obj->constantBuffer && !m_renderSystem.has(liveEntity)) {
+					RenderComponent renderable;
+					renderable.model = obj->model.get();
+					renderable.objectCB = obj->constantBuffer.get();
+					renderable.castsShadow = true;
+					renderable.visible = true;
+					m_renderSystem.add(liveEntity, renderable);
 				}
 			}
 

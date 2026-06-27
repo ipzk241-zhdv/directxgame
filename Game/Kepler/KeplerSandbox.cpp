@@ -39,6 +39,12 @@ namespace dx3d
 			};
 
 		m_scene.onObjectCreated = [this](std::shared_ptr<GameObject> obj) {
+			m_world.names.addOrReplace(obj->entity, NameComponent{ obj->name });
+			m_world.tags.addOrReplace(obj->entity, TagComponent{ obj->tag });
+			if (!obj->modelName.empty() || obj->model) {
+				m_world.models.addOrReplace(obj->entity, ModelComponent{ obj->modelName, obj->model });
+			}
+
 			obj->constantBuffer = m_graphicsEngine->getGraphicsDevice().createConstantBuffer({ nullptr, sizeof(DirectX::XMFLOAT4X4) * 3 });
 
 			if (obj->model) {
@@ -72,9 +78,17 @@ namespace dx3d
 	{
 		m_world.transforms.clear();
 		m_world.renderables.clear();
+		m_world.names.clear();
+		m_world.tags.clear();
+		m_world.models.clear();
 
 		for (const auto& obj : m_scene.getAllObjects()) {
 			m_world.transforms.assignTransform(obj->entity, obj->cachedEditorTransform);
+			m_world.names.addOrReplace(obj->entity, NameComponent{ obj->name });
+			m_world.tags.addOrReplace(obj->entity, TagComponent{ obj->tag });
+			if (!obj->modelName.empty() || obj->model) {
+				m_world.models.addOrReplace(obj->entity, ModelComponent{ obj->modelName, obj->model });
+			}
 
 			if (obj->model) {
 				RenderComponent rc;
@@ -247,7 +261,7 @@ namespace dx3d
 
 		if (key == VK_F5)
 		{
-			SceneSerializer serializer(m_world.registry, m_world.transforms, m_world.orbitSystem, m_scene, *m_assets);
+			SceneSerializer serializer(m_world.registry, m_world.transforms, m_world.renderables, m_world.names, m_world.tags, m_world.models, m_world.orbitSystem, m_scene, *m_assets);
 			if (serializer.Serialize("quicksave.json")) {
 				DX3D_LOG_INFO("Quick saved to quicksave.json (V2 Format)");
 			}
@@ -255,7 +269,7 @@ namespace dx3d
 
 		if (key == VK_F6 || key == VK_F7)
 		{
-			SceneSerializer serializer(m_world.registry, m_world.transforms, m_world.orbitSystem, m_scene, *m_assets);
+			SceneSerializer serializer(m_world.registry, m_world.transforms, m_world.renderables, m_world.names, m_world.tags, m_world.models, m_world.orbitSystem, m_scene, *m_assets);
 			auto saveFilePath = key == VK_F6 ? "quicksave.json" : "default_scene.json";
 			if (serializer.Deserialize(saveFilePath)) {
 				DX3D_LOG_INFO("Scene loaded from {}", saveFilePath);
